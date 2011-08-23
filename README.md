@@ -1,13 +1,13 @@
 WARNING
 -------
 
-This script may delete all your email.  That being said, it had yet to
+This script may delete all your email.  That being said, it has yet to
 delete my email - at least as far as I know.
 
 Introduction
 ------------
 
-This script archive a specific IMAP folder into dated folders similar
+This script archives a specific IMAP folder into dated folders similar
 to the Thunderbird email program.
 
 Configuration Example
