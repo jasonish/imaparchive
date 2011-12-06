@@ -90,23 +90,29 @@ def processAccount(config, account):
         m = IMAP4_SSL(remoteHost)
     else:
         m = IMAP4(remoteHost)
-    m.login(remoteUser, remotePass)
+    print("Logging in.")
+    try:
+        print(m.login(remoteUser, remotePass))
+    except Exception, err:
+        print("Failed to login: %s" % str(err))
+        sys.exit(1)
     buildFolderCache(m)
     print(m.select(sourceFolder))
     m.expunge()
     status, data = m.search(None, 'ALL')
-    msgSet = ",".join(data[0].split())
-    print msgSet
+    msgSet = data[0].split()
     if not msgSet:
         print("Archive folder is empty, exiting...")
         return 0
-    print("Found %d messages in %s." % (len(msgSet.split(",")), sourceFolder))
+    print("Found %d messages in %s." % (len(msgSet), sourceFolder))
 
     print("Marking all messages read...")
-    m.store(msgSet, '+FLAGS', '\\Seen')
-    print("\tDone.")
+    res = m.store("%s:%s" % (msgSet[0], msgSet[-1]), '+FLAGS', '\\Seen')
+    print(res)
+    print("Done.")
 
-    status, data = m.fetch(msgSet, '(UID BODY.PEEK[HEADER.FIELDS (DATE)])')
+    status, data = m.fetch(
+        ",".join(msgSet), '(UID BODY.PEEK[HEADER.FIELDS (DATE)])')
     for response_part in data:
         if isinstance(response_part, tuple):
             uid = parseUid(response_part[0])
