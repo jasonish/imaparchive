@@ -22,15 +22,15 @@ imap-archive.conf and then for ~/.imap-archive.conf.
 
 ### Configuration Example
 
-[general]
-accounts = some-account
+    [general]
+    accounts = some-account
 
-[Account some-account]
-remotehost = imap.example.com
-remoteuser = username
-remotepass = password
-ssl = yes
-source-folder = Archive
+    [Account some-account]
+    remotehost = imap.example.com
+    remoteuser = username
+    remotepass = password
+    ssl = yes
+    source-folder = Archive
 
 Usage
 -----
