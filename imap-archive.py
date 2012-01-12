@@ -138,9 +138,16 @@ def main():
     parser.add_option("-c", "--config", help="config file")
     opts, args = parser.parse_args()
 
-    if opts.config == None:
-        print("ERROR: No configuration file specified.")
-        return 1
+    if not opts.config:
+        # Check current directory for config file.
+        if os.path.exists("./imap-archive.conf"):
+            opts.config = "./imap-archive.conf"
+        # Next check ~/.imap-archive.
+        elif os.path.exists(os.environ['HOME'] + "/.imap-archive.conf"):
+            opts.config = os.environ['HOME'] + "/.imap-archive.conf"
+        else:
+            print("ERROR: No configuration file specified.")
+            return 1
     elif not os.path.exists(opts.config):
         print("ERROR: Specified configuration file does not exist.")
         return 1
