@@ -56,6 +56,27 @@ def createFolder(imapConn, folder):
         print(imapConn.create(folder))
         buildFolderCache(imapConn)
 
+def mark_folder_as_read(imap, folder):
+    """ Mark a folder as read.
+
+    imap should be an already connected and logged imap object.
+
+    folder is the name of the folder to be marked as read.
+    """
+
+    res = imap.select(folder)
+    if res[0] != 'OK':
+        return False, res
+    res = imap.search(None, '(NOT SEEN)')
+    if res[0] != 'OK':
+        return False, res
+
+    msg_set = res[1][0].split()
+    res = imap.store("%s" % ",".join(msg_set), "+FLAGS", "\\Seen")
+    if res[0] != 'OK':
+        return False, res
+    return True, None
+
 def parseUid(buf):
     """ Extract the IMAP UID from buf. """
     m = re.search("UID (\d+)", buf)
@@ -68,6 +89,11 @@ def getMsgLocaltime(date):
 def processAccount(config, account):
 
     section = "Account %s" % account
+
+    if config.has_option(section, "mark-read"):
+        mark_read = config.getboolean(section, "mark-read")
+    else:
+        mark_read = False
 
     try:
         sourceFolder = config.get(section, "source-folder")
@@ -102,14 +128,13 @@ def processAccount(config, account):
     status, data = m.search(None, 'ALL')
     msgSet = data[0].split()
     if not msgSet:
-        print("Archive folder is empty, exiting...")
+        print("%s folder is empty, exiting..." % (sourceFolder))
         return 0
     print("Found %d messages in %s." % (len(msgSet), sourceFolder))
 
-    print("Marking all messages read...")
-    res = m.store("%s:%s" % (msgSet[0], msgSet[-1]), '+FLAGS', '\\Seen')
-    print(res)
-    print("Done.")
+    # A set to track the folders we add messages to so we can mark
+    # them as read if needed.
+    dst_folders = set()
 
     status, data = m.fetch(
         ",".join(msgSet), '(UID BODY.PEEK[HEADER.FIELDS (DATE)])')
@@ -121,17 +146,33 @@ def processAccount(config, account):
                 ts = getMsgLocaltime(msg['DATE'])
                 dstFolder = "Archives/%s/%s" % (
                     ts.strftime("%Y"), ts.strftime("%Y-%m"))
-                print "Moving Archive/%s to %s." % (uid, dstFolder)
+                dst_folders.add(dstFolder)
+                sys.stdout.write("Moving %s/%s to %s: " % (
+                        sourceFolder, uid, dstFolder))
                 createFolder(m, dstFolder)
-                print(m.uid('COPY', uid, dstFolder))
-                print(m.uid('STORE', uid, '+FLAGS', '\\Deleted'))
+                res = m.uid('COPY', uid, dstFolder)
+                print(res)
+                if res[0] == 'OK':
+                    res = m.uid('STORE', uid, '+FLAGS', '\\Deleted')
+                    if res[0] != 'OK':
+                        print("Failed to delete message %s from %s: %s" % (
+                                uid, sourceFolder, str(res)))
             except Exception, e:
                 print("Failed to move UID %d: %s" % (uid, e))
                 raise
 
-    print("Expunging folder Archive...")
+    print("Expunging folder %s..." % (sourceFolder))
     m.expunge()
     print("\tDone.")
+
+    # For each folder we added a message to, optionally mark all as
+    # read.
+    if mark_read:
+        for folder in dst_folders:
+            print("Marking folder %s as read." % (folder))
+            status, err = mark_folder_as_read(m, folder)
+            if not status:
+                print("An error occurred while marking the folder %s as read:\n\t%s" % (folder, str(err)))
 
 def main():
     parser = OptionParser()

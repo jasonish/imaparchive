@@ -31,6 +31,7 @@ imap-archive.conf and then for ~/.imap-archive.conf.
     remotepass = password
     ssl = yes
     source-folder = Archive
+    mark-read = yes
 
 Usage
 -----
