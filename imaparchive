@@ -40,21 +40,21 @@ from optparse import OptionParser
 
 folders = []
 
-def buildFolderCache(imapConn):
+def build_folder_cache(imap_conn):
     global folders
     _folders = []
-    for f in imapConn.list("Archives/")[1]:
+    for f in imap_conn.list("Archives/")[1]:
         m = re.search(".*\"?(Archives\/.*)\"?", f)
         if m:
             _folders.append(m.group(1))
     folders = _folders
 
-def createFolder(imapConn, folder):
+def create_folder(imap_conn, folder):
     """ Create folder if it does not already exist. """
     if folder not in folders:
         print("Creating folder %s" % folder)
-        print(imapConn.create(folder))
-        buildFolderCache(imapConn)
+        print(imap_conn.create(folder))
+        build_folder_cache(imap_conn)
 
 def mark_folder_as_read(imap, folder):
     """ Mark a folder as read.
@@ -77,16 +77,16 @@ def mark_folder_as_read(imap, folder):
         return False, res
     return True, None
 
-def parseUid(buf):
+def parse_uid(buf):
     """ Extract the IMAP UID from buf. """
     m = re.search("UID (\d+)", buf)
     return int(m.group(1))
 
-def getMsgLocaltime(date):
+def get_msg_localtime(date):
     """ Return the date of the message in local time. """
     return datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date)))
 
-def processAccount(config, account):
+def process_account(config, account):
 
     section = "Account %s" % account
 
@@ -96,41 +96,41 @@ def processAccount(config, account):
         mark_read = False
 
     try:
-        sourceFolder = config.get(section, "source-folder")
+        source_folder = config.get(section, "source-folder")
     except:
-        sourceFolder = None
-    if not sourceFolder:
+        source_folder = None
+    if not source_folder:
         print("ERROR: Source folder for account %s not specified." % (
                 account))
         return
 
-    remoteHost = config.get(section, "remotehost")
-    remoteUser = config.get(section, "remoteuser")
-    remotePass = config.get(section, "remotepass")
+    remotehost = config.get(section, "remotehost")
+    remoteuser = config.get(section, "remoteuser")
+    remotepass = config.get(section, "remotepass")
 
-    useSsl = False
+    use_ssl = False
     if config.has_option(section, "ssl"):
-        useSsl = config.getboolean(section, "ssl")
+        use_ssl = config.getboolean(section, "ssl")
 
-    if useSsl:
-        m = IMAP4_SSL(remoteHost)
+    if use_ssl:
+        m = IMAP4_SSL(remotehost)
     else:
-        m = IMAP4(remoteHost)
+        m = IMAP4(remotehost)
     print("Logging in.")
     try:
-        print(m.login(remoteUser, remotePass))
+        print(m.login(remoteuser, remotepass))
     except Exception, err:
         print("Failed to login: %s" % str(err))
         sys.exit(1)
-    buildFolderCache(m)
-    print(m.select(sourceFolder))
+    build_folder_cache(m)
+    print(m.select(source_folder))
     m.expunge()
     status, data = m.search(None, 'ALL')
     msgSet = data[0].split()
     if not msgSet:
-        print("%s folder is empty, exiting..." % (sourceFolder))
+        print("%s folder is empty, exiting..." % (source_folder))
         return 0
-    print("Found %d messages in %s." % (len(msgSet), sourceFolder))
+    print("Found %d messages in %s." % (len(msgSet), source_folder))
 
     # A set to track the folders we add messages to so we can mark
     # them as read if needed.
@@ -140,28 +140,28 @@ def processAccount(config, account):
         ",".join(msgSet), '(UID BODY.PEEK[HEADER.FIELDS (DATE)])')
     for response_part in data:
         if isinstance(response_part, tuple):
-            uid = parseUid(response_part[0])
+            uid = parse_uid(response_part[0])
             try:
                 msg = email.message_from_string(response_part[1])
-                ts = getMsgLocaltime(msg['DATE'])
-                dstFolder = "Archives/%s/%s" % (
+                ts = get_msg_localtime(msg['DATE'])
+                dst_folder = "Archives/%s/%s" % (
                     ts.strftime("%Y"), ts.strftime("%Y-%m"))
-                dst_folders.add(dstFolder)
+                dst_folders.add(dst_folder)
                 sys.stdout.write("Moving %s/%s to %s: " % (
-                        sourceFolder, uid, dstFolder))
-                createFolder(m, dstFolder)
-                res = m.uid('COPY', uid, dstFolder)
+                        source_folder, uid, dst_folder))
+                create_folder(m, dst_folder)
+                res = m.uid('COPY', uid, dst_folder)
                 print(res)
                 if res[0] == 'OK':
                     res = m.uid('STORE', uid, '+FLAGS', '\\Deleted')
                     if res[0] != 'OK':
                         print("Failed to delete message %s from %s: %s" % (
-                                uid, sourceFolder, str(res)))
+                                uid, source_folder, str(res)))
             except Exception, e:
                 print("Failed to move UID %d: %s" % (uid, e))
                 raise
 
-    print("Expunging folder %s..." % (sourceFolder))
+    print("Expunging folder %s..." % (source_folder))
     m.expunge()
     print("\tDone.")
 
@@ -201,6 +201,7 @@ def main():
         return 1
     for account in accounts:
         print("Processing account %s." % account)
-        processAccount(config, account)
+        process_account(config, account)
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())
