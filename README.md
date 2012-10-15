@@ -1,5 +1,5 @@
-imap-archive.py
-===============
+imaparchive
+===========
 
 WARNING
 -------
@@ -17,8 +17,8 @@ Configuration
 -------------
 
 If a configuration file is not specified on the command with -c
-imap-archive will first check the current directory for
-imap-archive.conf and then for ~/.imap-archive.conf.
+imaparchive will look for a file named imaparchive.conf in the current
+directory.
 
 ### Configuration Example
 
@@ -38,7 +38,7 @@ Usage
 
 Run the script like:
 
-    python /path/to/imap-archive.py [-c <config_file>]
+    python /path/to/imaparchive [-c <config_file>]
 
 This will move all the mail in the folder Archive to folders named
 Archives/YYYY/MM and purge them from the source folder.
