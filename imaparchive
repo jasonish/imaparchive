@@ -111,11 +111,13 @@ def process_account(config, account):
     use_ssl = False
     if config.has_option(section, "ssl"):
         use_ssl = config.getboolean(section, "ssl")
-
+    remoteport = None
+    if config.has_option(section, "remoteport"):
+        remoteport = config.getint(section, "remoteport")
     if use_ssl:
-        m = IMAP4_SSL(remotehost)
+        m = IMAP4_SSL(remotehost, remoteport)
     else:
-        m = IMAP4(remotehost)
+        m = IMAP4(remotehost, remoteport)
     print("Logging in.")
     try:
         print(m.login(remoteuser, remotepass))

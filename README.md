@@ -27,6 +27,7 @@ directory.
 
     [Account some-account]
     remotehost = imap.example.com
+	remoteport = 1143
     remoteuser = username
     remotepass = password
     ssl = yes
